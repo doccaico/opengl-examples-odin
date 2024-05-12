@@ -5,11 +5,11 @@ import "core:log"
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 
-// odin run triangle.odin -file
+// odin run rectangle.odin -file
 
 WIDTH :: 500
 HEIGHT :: 500
-TITLE :: "Triangle"
+TITLE :: "Rectangle"
 
 vs_source :: `
 #version 460 core
@@ -19,8 +19,7 @@ layout (location = 1) in vec3 aColor;
 
 out vec4 vertexColor;
 
-void main()
-{
+void main() {
 	gl_Position = vec4(aPos, 1.0);
 	vertexColor = vec4(aColor, 1.0);
 }`
@@ -31,8 +30,7 @@ fs_source :: `
 in vec4 vertexColor;
 out vec4 FragColor;
 
-void main()
-{
+void main() {
 	FragColor = vertexColor;
 }`
 
@@ -63,14 +61,24 @@ main :: proc() {
 	}
 
 	vertices := [?]f32 {
-		-0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // left
-		0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // right
-		0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
+		0.5, 0.5, 0.0, 1.0, 0.0, 0.0,
+		0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
+		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0,
+		-0.5, 0.5, 0.0, 0.0, 1.0, 0.0,
+	}
+
+	indices := [?]u32 {
+		0, 2, 1,
+		0, 3, 2,
 	}
 
 	vbo: u32
 	gl.CreateBuffers(1, &vbo)
 	gl.NamedBufferStorage(vbo, size_of(vertices), &vertices, gl.DYNAMIC_STORAGE_BIT)
+
+	ibo: u32
+	gl.CreateBuffers(1, &ibo)
+	gl.NamedBufferStorage(ibo, size_of(indices), &indices, gl.DYNAMIC_STORAGE_BIT)
 
 	vao: u32
 	gl.CreateVertexArrays(1, &vao)
@@ -83,8 +91,10 @@ main :: proc() {
 	gl.VertexArrayAttribBinding(vao, 1, 0)
 
 	gl.VertexArrayVertexBuffer(vao, 0, vbo, 0, 6 * size_of(f32))
+	gl.VertexArrayElementBuffer(vao, ibo);
 
 	gl.UseProgram(program)
+	gl.BindVertexArray(vao)
 
 	gl.ClearColor(0.1, 0.2, 0.2, 1.0)
 
@@ -93,8 +103,7 @@ main :: proc() {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gl.BindVertexArray(vao)
-		gl.DrawArrays(gl.TRIANGLES, 0, 3)
+		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
 
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
