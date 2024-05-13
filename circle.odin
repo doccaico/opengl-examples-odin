@@ -1,27 +1,28 @@
 package main
 
 import "core:fmt"
+import "core:math"
 import "core:log"
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 
-// odin run square.odin -file
+// odin run circle.odin -file
+// https://faun.pub/draw-circle-in-opengl-c-2da8d9c2c103
 
 WIDTH :: 500
 HEIGHT :: 500
-TITLE :: "Square"
+TITLE :: "Circle"
 
 vs_source :: `
 #version 460 core
 
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
 
 out vec4 vertexColor;
 
 void main() {
 	gl_Position = vec4(aPos, 1.0);
-	vertexColor = vec4(aColor, 1.0);
+	vertexColor = vec4(1.0, 0.0, 0.0, 1.0);
 }`
 
 fs_source :: `
@@ -61,38 +62,59 @@ main :: proc() {
 	}
 	defer gl.DeleteProgram(program)
 
-	vertices := [?]f32 {
-		0.5, 0.5, 0.0, 1.0, 0.0, 0.0,
-		0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
-		-0.5, -0.5, 0.0, 0.0, 0.0, 1.0,
-		-0.5, 0.5, 0.0, 0.0, 1.0, 0.0,
-	}
+	// Start: [Build Circle]
 
-	indices := [?]u32 {
-		0, 2, 1,
-		0, 3, 2,
+	// vertex_count := 4
+	// vertex_count := 32
+	// vertex_count := 64
+	vertex_count := 128
+
+	vertices := make([dynamic]f32, 0, vertex_count * 3)
+	defer delete(vertices)
+	indices := make([dynamic]u32, 0, (vertex_count * 3) - (3 * 2))
+	defer delete(indices)
+
+	{
+		radius := f32(1.0)
+		angle := 360.0 / f32(vertex_count)
+		triangle_count := vertex_count - 2;
+
+		for i := 0; i < vertex_count; i += 1 {
+			currentAngle := angle * f32(i);
+			x := radius * math.cos(math.to_radians(currentAngle))
+			y := radius * math.sin(math.to_radians(currentAngle))
+			z := f32(0.0)
+
+			append(&vertices, x, y, z);
+		}
+
+		for i := 0; i < triangle_count; i += 1 {
+			append(&indices, u32(0));
+			append(&indices, u32(i + 1));
+			append(&indices, u32(i + 2));
+		}
 	}
+	fmt.println("vertices", "sizeof:", len(vertices) * size_of(f32), "len:", len(vertices))
+	fmt.println("indices", "sizeof:", len(indices) * size_of(u32), "len:", len(indices))
+	// End: [Build Circle]
 
 	vbo: u32
 	gl.CreateBuffers(1, &vbo)
 	defer gl.DeleteBuffers(1, &vbo)
-	gl.NamedBufferStorage(vbo, size_of(vertices), &vertices, gl.DYNAMIC_STORAGE_BIT)
+	gl.NamedBufferStorage(vbo, len(vertices) * size_of(f32), &vertices[0], gl.DYNAMIC_STORAGE_BIT)
 
 	ebo: u32
 	gl.CreateBuffers(1, &ebo)
 	defer gl.DeleteBuffers(1, &ebo)
-	gl.NamedBufferStorage(ebo, size_of(indices), &indices, gl.DYNAMIC_STORAGE_BIT)
+	gl.NamedBufferStorage(ebo, len(indices) * size_of(u32), &indices[0], gl.DYNAMIC_STORAGE_BIT)
 
 	vao: u32
 	gl.CreateVertexArrays(1, &vao)
 	defer gl.DeleteVertexArrays(1, &vao)
 
 	gl.EnableVertexArrayAttrib(vao, 0)
-	gl.EnableVertexArrayAttrib(vao, 1)
 	gl.VertexArrayAttribFormat(vao, 0, 3, gl.FLOAT, false, 0)
-	gl.VertexArrayAttribFormat(vao, 1, 3, gl.FLOAT, false, 3 * size_of(f32))
 	gl.VertexArrayAttribBinding(vao, 0, 0)
-	gl.VertexArrayAttribBinding(vao, 1, 0)
 
 	gl.VertexArrayVertexBuffer(vao, 0, vbo, 0, 6 * size_of(f32))
 	gl.VertexArrayElementBuffer(vao, ebo);
@@ -107,7 +129,7 @@ main :: proc() {
 
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil)
+		gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 		glfw.SwapBuffers(window)
 		glfw.PollEvents()
