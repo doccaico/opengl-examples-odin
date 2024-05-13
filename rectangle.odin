@@ -59,6 +59,7 @@ main :: proc() {
 		msg, shader_type := gl.get_last_error_message()
 		fmt.panicf("Shader program creation error! %s %v\n", msg, shader_type)
 	}
+	defer gl.DeleteProgram(program)
 
 	vertices := [?]f32 {
 		0.5, 0.5, 0.0, 1.0, 0.0, 0.0,
@@ -74,14 +75,17 @@ main :: proc() {
 
 	vbo: u32
 	gl.CreateBuffers(1, &vbo)
+	defer gl.DeleteBuffers(1, &vbo)
 	gl.NamedBufferStorage(vbo, size_of(vertices), &vertices, gl.DYNAMIC_STORAGE_BIT)
 
-	ibo: u32
-	gl.CreateBuffers(1, &ibo)
-	gl.NamedBufferStorage(ibo, size_of(indices), &indices, gl.DYNAMIC_STORAGE_BIT)
+	ebo: u32
+	gl.CreateBuffers(1, &ebo)
+	defer gl.DeleteBuffers(1, &ebo)
+	gl.NamedBufferStorage(ebo, size_of(indices), &indices, gl.DYNAMIC_STORAGE_BIT)
 
 	vao: u32
 	gl.CreateVertexArrays(1, &vao)
+	defer gl.DeleteVertexArrays(1, &vao)
 
 	gl.EnableVertexArrayAttrib(vao, 0)
 	gl.EnableVertexArrayAttrib(vao, 1)
@@ -91,7 +95,7 @@ main :: proc() {
 	gl.VertexArrayAttribBinding(vao, 1, 0)
 
 	gl.VertexArrayVertexBuffer(vao, 0, vbo, 0, 6 * size_of(f32))
-	gl.VertexArrayElementBuffer(vao, ibo);
+	gl.VertexArrayElementBuffer(vao, ebo);
 
 	gl.UseProgram(program)
 	gl.BindVertexArray(vao)
