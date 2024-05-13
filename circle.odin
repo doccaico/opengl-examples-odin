@@ -80,9 +80,9 @@ main :: proc() {
 		triangle_count := vertex_count - 2;
 
 		for i := 0; i < vertex_count; i += 1 {
-			currentAngle := angle * f32(i);
-			x := radius * math.cos(math.to_radians(currentAngle))
-			y := radius * math.sin(math.to_radians(currentAngle))
+			current_angle := angle * f32(i);
+			x := radius * math.cos(math.to_radians(current_angle))
+			y := radius * math.sin(math.to_radians(current_angle))
 			z := f32(0.0)
 
 			append(&vertices, x, y, z);
